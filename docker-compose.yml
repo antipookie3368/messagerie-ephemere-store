@@ -1,0 +1,26 @@
+# Compose "brut" pour build/test en local sur le serveur (hors Runtipi).
+# Construit l'image utilisée ensuite par runtipi-store/apps/messagerie-ephemere/docker-compose.yml
+# (même daemon Docker => l'image locale est directement réutilisable, pas besoin de registry).
+services:
+  app:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: messagerie-ephemere-backend:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PORT=3000
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+volumes:
+  redis-data:

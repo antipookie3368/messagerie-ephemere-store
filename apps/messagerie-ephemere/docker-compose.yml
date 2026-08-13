@@ -1,0 +1,19 @@
+services:
+  app:
+    image: messagerie-ephemere-backend:latest
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PORT=3000
+    depends_on:
+      - redis
+    x-runtipi:
+      is_main: true
+      internal_port: 3000
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - ${APP_DATA_DIR}/redis:/data
+
+x-runtipi:
+  schema_version: 2
