@@ -4,5 +4,8 @@
   "description": "Utilisé uniquement pour vendorer libsodium-wrappers dans l'image Docker (voir backend/Dockerfile). Pas de build JS, pas de bundler.",
   "dependencies": {
     "libsodium-wrappers": "^0.7.15"
+  },
+  "devDependencies": {
+    "esbuild": "^0.23.1"
   }
 }

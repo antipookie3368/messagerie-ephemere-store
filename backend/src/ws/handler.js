@@ -1,57 +1,78 @@
 import { customAlphabet } from 'nanoid';
 import { redis } from '../redis.js';
-import { getPseudoFromToken } from '../auth.js';
+import { isAdminSession } from '../adminAuth.js';
 import { registerConnection, sendToPseudoInRoom } from './registry.js';
+import { ADMIN_LOBBY_ROOM } from '../routes/tickets.js';
 
 const genMsgId = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 12);
 
-const SAFETY_TTL_SECONDS = 60 * 60 * 24 * 7; // filet de sécurité pour le mode "lecture"
+const MESSAGE_TTL_SECONDS = 60 * 60 * 24; // fixe, aligné sur la durée de vie du ticket
 
-function msgKey(roomId, msgId) {
-  return `msg:${roomId}:${msgId}`;
+function msgKey(ticketId, msgId) {
+  return `msg:${ticketId}:${msgId}`;
 }
 
-function roomKey(roomId) {
-  return `room:${roomId}`;
+function ticketKey(ticketId) {
+  return `ticket:${ticketId}`;
 }
 
-async function loadRoom(roomId) {
-  const raw = await redis.get(roomKey(roomId));
+async function loadTicket(ticketId) {
+  const raw = await redis.get(ticketKey(ticketId));
   return raw ? JSON.parse(raw) : null;
-}
-
-function otherPseudo(room, pseudo) {
-  if (room.ownerPseudo === pseudo) return room.joinerPseudo;
-  if (room.joinerPseudo === pseudo) return room.ownerPseudo;
-  return null;
 }
 
 export default async function wsRoutes(fastify) {
   fastify.get('/ws', { websocket: true }, async (connection, request) => {
     const socket = connection.socket ?? connection; // compat selon version @fastify/websocket
-    const { token, roomId } = request.query;
+    const { ticketId, accessToken, adminSessionToken } = request.query;
 
-    const pseudo = await getPseudoFromToken(token);
-    if (!pseudo) {
-      socket.close(4001, 'unauthorized');
+    let role; // 'visitor' | 'admin'
+    let roomId;
+
+    if (adminSessionToken) {
+      const ok = await isAdminSession(adminSessionToken);
+      if (!ok) {
+        socket.close(4001, 'unauthorized');
+        return;
+      }
+      role = 'admin';
+      if (ticketId) {
+        const ticket = await loadTicket(ticketId);
+        if (!ticket) {
+          socket.close(4004, 'ticket_not_found');
+          return;
+        }
+        roomId = ticketId;
+      } else {
+        // Connexion "tableau de bord" : reçoit les notifications de nouveaux
+        // tickets, sans être rattachée à un ticket précis.
+        roomId = ADMIN_LOBBY_ROOM;
+      }
+    } else if (ticketId && accessToken) {
+      const ticket = await loadTicket(ticketId);
+      if (!ticket || ticket.accessToken !== accessToken) {
+        socket.close(4001, 'unauthorized');
+        return;
+      }
+      role = 'visitor';
+      roomId = ticketId;
+    } else {
+      socket.close(4000, 'missing_params');
       return;
     }
 
-    const room = await loadRoom(roomId);
-    if (!room || (room.ownerPseudo !== pseudo && room.joinerPseudo !== pseudo)) {
-      socket.close(4004, 'room_not_found_or_forbidden');
-      return;
-    }
+    const unregister = registerConnection(roomId, role, socket);
+    const isLobby = roomId === ADMIN_LOBBY_ROOM;
 
-    const unregister = registerConnection(roomId, pseudo, socket);
-
-    // Délivrer les messages en attente adressés à cet utilisateur.
-    const pending = await deliverPendingMessages(roomId, pseudo);
-    for (const payload of pending) {
-      socket.send(JSON.stringify(payload));
+    if (!isLobby) {
+      const pending = await deliverPendingMessages(roomId, role);
+      for (const payload of pending) {
+        socket.send(JSON.stringify(payload));
+      }
     }
 
     socket.on('message', async (raw) => {
+      if (isLobby) return; // le salon admin-lobby ne relaie pas de messages
       let data;
       try {
         data = JSON.parse(raw.toString());
@@ -60,9 +81,7 @@ export default async function wsRoutes(fastify) {
       }
 
       if (data.type === 'message') {
-        await handleIncomingMessage(roomId, pseudo, room, data, socket);
-      } else if (data.type === 'ack_read') {
-        await handleAckRead(roomId, pseudo, data);
+        await handleIncomingMessage(roomId, role, data, socket);
       }
     });
 
@@ -72,66 +91,47 @@ export default async function wsRoutes(fastify) {
   });
 }
 
-async function handleIncomingMessage(roomId, fromPseudo, room, data, socket) {
-  const { ciphertext, nonce, mode, ttlSeconds } = data;
+async function handleIncomingMessage(ticketId, fromRole, data, socket) {
+  const { ciphertext, nonce } = data;
 
   if (typeof ciphertext !== 'string' || typeof nonce !== 'string') return;
-  if (!['read', 'timer'].includes(mode)) return;
 
-  const recipient = otherPseudo(room, fromPseudo);
-  if (!recipient) return; // pas encore de second participant
-
-  const msgId = genMsgId();
-  const payload = { ciphertext, nonce, from: fromPseudo, mode };
-
-  if (mode === 'timer') {
-    const ttl = Math.min(Math.max(Number(ttlSeconds) || 300, 30), 60 * 60 * 24);
-    await redis.set(msgKey(roomId, msgId), JSON.stringify(payload), 'EX', ttl);
-  } else {
-    // mode "lecture" : pas d'expiration métier, mais un filet de sécurité
-    // pour ne jamais accumuler indéfiniment si le destinataire ne revient pas.
-    await redis.set(msgKey(roomId, msgId), JSON.stringify(payload), 'EX', SAFETY_TTL_SECONDS);
+  // Filet de sécurité contre une course avec une suppression admin en cours :
+  // si le ticket vient de disparaître, on n'écrit rien.
+  const ticket = await loadTicket(ticketId);
+  if (!ticket) {
+    socket.close(4004, 'ticket_not_found');
+    return;
   }
 
-  const delivered = sendToPseudoInRoom(roomId, recipient, {
+  const recipientRole = fromRole === 'visitor' ? 'admin' : 'visitor';
+  const msgId = genMsgId();
+  const payload = { ciphertext, nonce, from: fromRole };
+
+  await redis.set(msgKey(ticketId, msgId), JSON.stringify(payload), 'EX', MESSAGE_TTL_SECONDS);
+
+  const delivered = sendToPseudoInRoom(ticketId, recipientRole, {
     type: 'message',
     msgId,
     ciphertext,
     nonce,
-    from: fromPseudo,
-    mode,
+    from: fromRole,
   });
 
   socket.send(JSON.stringify({ type: 'sent_ack', msgId, delivered }));
 }
 
-async function handleAckRead(roomId, pseudo, data) {
-  const { msgId } = data;
-  if (typeof msgId !== 'string') return;
-
-  const key = msgKey(roomId, msgId);
-  const raw = await redis.get(key);
-  if (!raw) return;
-  const payload = JSON.parse(raw);
-
-  // Seul le destinataire (pas l'auteur) peut déclencher la purge à la lecture.
-  if (payload.from === pseudo || payload.mode !== 'read') return;
-
-  await redis.del(key);
-  sendToPseudoInRoom(roomId, payload.from, { type: 'purged', msgId });
-}
-
-async function deliverPendingMessages(roomId, pseudo) {
+async function deliverPendingMessages(ticketId, myRole) {
   const results = [];
   let cursor = '0';
   do {
-    const [next, keys] = await redis.scan(cursor, 'MATCH', `msg:${roomId}:*`, 'COUNT', 100);
+    const [next, keys] = await redis.scan(cursor, 'MATCH', `msg:${ticketId}:*`, 'COUNT', 100);
     cursor = next;
     for (const key of keys) {
       const raw = await redis.get(key);
       if (!raw) continue;
       const payload = JSON.parse(raw);
-      if (payload.from !== pseudo) {
+      if (payload.from !== myRole) {
         const msgId = key.split(':').pop();
         results.push({
           type: 'message',
@@ -139,7 +139,6 @@ async function deliverPendingMessages(roomId, pseudo) {
           ciphertext: payload.ciphertext,
           nonce: payload.nonce,
           from: payload.from,
-          mode: payload.mode,
         });
       }
     }

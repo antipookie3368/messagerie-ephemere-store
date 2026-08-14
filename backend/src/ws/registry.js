@@ -27,6 +27,17 @@ export function broadcastToRoom(roomId, payload, { excludePseudo } = {}) {
   }
 }
 
+// Ferme de force toutes les connexions d'un salon (ex: ticket supprimé par
+// l'admin) — on ne se contente pas d'un message applicatif, la connexion
+// elle-même est coupée pour éjecter vraiment le visiteur.
+export function closeRoom(roomId, code, reason) {
+  const set = rooms.get(roomId);
+  if (!set) return;
+  for (const { socket } of set) {
+    if (socket.readyState === socket.OPEN) socket.close(code, reason);
+  }
+}
+
 export function sendToPseudoInRoom(roomId, pseudo, payload) {
   const set = rooms.get(roomId);
   if (!set) return false;

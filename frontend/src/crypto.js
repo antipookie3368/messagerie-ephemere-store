@@ -16,6 +16,20 @@ export function generateKeyPair() {
   return { publicKey: kp.publicKey, privateKey: kp.privateKey };
 }
 
+// Paire de clés déterministe pour un visiteur : retaper le même pseudo
+// recalcule exactement la même clé, sans dépendre du localStorage (qui peut
+// disparaître : fermeture d'onglet privé, nettoyage navigateur...).
+// Conséquence assumée : connaître le pseudo suffit à déchiffrer toute la
+// conversation, passée et future — pas seulement à la rejoindre.
+export function deriveVisitorKeyPair(pseudo) {
+  const seed = sodium.crypto_generichash(
+    sodium.crypto_box_SEEDBYTES,
+    sodium.from_string(`ephemr-visitor:${pseudo.toLowerCase()}`)
+  );
+  const kp = sodium.crypto_box_seed_keypair(seed);
+  return { publicKey: kp.publicKey, privateKey: kp.privateKey };
+}
+
 export function toBase64(bytes) {
   return sodium.to_base64(bytes, sodium.base64_variants.URLSAFE_NO_PADDING);
 }
@@ -45,4 +59,45 @@ export function decryptMessage(ciphertextB64, nonceB64, senderPublicKeyB64, myPr
   const senderPublicKey = fromBase64(senderPublicKeyB64);
   const plaintextBytes = sodium.crypto_box_open_easy(ciphertext, nonce, senderPublicKey, myPrivateKey);
   return sodium.to_string(plaintextBytes);
+}
+
+// Enveloppe une clé privée admin avec un secret dérivé du mot de passe
+// (Argon2id via crypto_pwhash), pour pouvoir la recouvrer sur n'importe quel
+// appareil sans export/import manuel. Le serveur ne stocke que ce blob
+// chiffré + le sel : il ne peut pas dériver la clé sans le mot de passe.
+export function wrapPrivateKeyWithPassword(privateKey, password) {
+  const salt = sodium.randombytes_buf(sodium.crypto_pwhash_SALTBYTES);
+  const derivedKey = sodium.crypto_pwhash(
+    sodium.crypto_secretbox_KEYBYTES,
+    password,
+    salt,
+    sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
+    sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE,
+    sodium.crypto_pwhash_ALG_DEFAULT
+  );
+  const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+  const encrypted = sodium.crypto_secretbox_easy(privateKey, nonce, derivedKey);
+  return {
+    encryptedPrivateKey: toBase64(encrypted),
+    nonce: toBase64(nonce),
+    salt: toBase64(salt),
+  };
+}
+
+// Lève une exception si le mot de passe ne correspond pas (authentification
+// Poly1305 du secretbox), ce qui distingue clairement "mauvais mot de passe"
+// d'une simple absence de sauvegarde.
+export function unwrapPrivateKeyWithPassword(encryptedPrivateKeyB64, nonceB64, saltB64, password) {
+  const salt = fromBase64(saltB64);
+  const derivedKey = sodium.crypto_pwhash(
+    sodium.crypto_secretbox_KEYBYTES,
+    password,
+    salt,
+    sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
+    sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE,
+    sodium.crypto_pwhash_ALG_DEFAULT
+  );
+  const nonce = fromBase64(nonceB64);
+  const encrypted = fromBase64(encryptedPrivateKeyB64);
+  return sodium.crypto_secretbox_open_easy(encrypted, nonce, derivedKey);
 }

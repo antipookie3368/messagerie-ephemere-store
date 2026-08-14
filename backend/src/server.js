@@ -5,8 +5,9 @@ import fastifyWebsocket from '@fastify/websocket';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 
-import registerRoutes from './routes/register.js';
-import roomRoutes from './routes/room.js';
+import adminAuthRoutes from './routes/adminAuth.js';
+import adminKeyRoutes from './routes/adminKey.js';
+import ticketRoutes from './routes/tickets.js';
 import wsRoutes from './ws/handler.js';
 import { startExpiryListener } from './expiry.js';
 
@@ -29,10 +30,17 @@ await fastify.register(fastifyWebsocket);
 await fastify.register(fastifyStatic, {
   root: FRONTEND_DIR,
   prefix: '/',
+  // Évite qu'un CDN devant le serveur (Cloudflare) mette en cache une
+  // réponse (notamment un 404 passager pendant un redéploiement) au-delà
+  // de sa fraîcheur réelle : on force une revalidation à chaque requête.
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+  },
 });
 
-await fastify.register(registerRoutes);
-await fastify.register(roomRoutes);
+await fastify.register(adminAuthRoutes);
+await fastify.register(adminKeyRoutes);
+await fastify.register(ticketRoutes);
 await fastify.register(wsRoutes);
 
 fastify.get('/api/health', async () => ({ status: 'ok' }));

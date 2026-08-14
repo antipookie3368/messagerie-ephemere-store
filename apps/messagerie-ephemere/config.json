@@ -1,5 +1,5 @@
 {
-  "name": "Messagerie Ephemere",
+  "name": "EphemR",
   "id": "messagerie-ephemere",
   "description": "Messagerie a messages ephemeres, chiffree de bout en bout (E2EE) avec libsodium. Le serveur ne stocke et ne relaie que du contenu deja chiffre par le client.",
   "short_desc": "Messagerie ephemere E2EE auto-hebergee",
@@ -15,5 +15,15 @@
   "exposable": true,
   "dynamic_config": true,
   "supported_architectures": ["arm64", "amd64"],
-  "form_fields": []
+  "form_fields": [
+    {
+      "type": "password",
+      "label": "Mot de passe admin",
+      "hint": "Protege l'acces au tableau de bord admin (/admin.html) qui liste et repond aux tickets.",
+      "min": 8,
+      "max": 200,
+      "required": true,
+      "env_variable": "ADMIN_PASSWORD"
+    }
+  ]
 }

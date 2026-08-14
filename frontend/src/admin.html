@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — EphemR</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header>
+  <h1>Admin — EphemR</h1>
+  <a href="/" class="admin-link">Retour au site</a>
+</header>
+
+<main>
+
+  <section id="login-view" class="view">
+    <p class="hint">
+      N'utilise pas de fenêtre de navigation privée pour cette page : ta clé
+      de déchiffrement est stockée dans ce navigateur et serait perdue à la
+      fermeture, rendant les discussions existantes illisibles.
+    </p>
+    <form id="login-form">
+      <label for="password-input">Mot de passe admin</label>
+      <input id="password-input" type="password" required>
+      <button type="submit">Se connecter</button>
+      <p class="error" id="login-error"></p>
+    </form>
+  </section>
+
+  <section id="dashboard-view" class="view hidden dashboard">
+    <aside id="ticket-list-panel">
+      <div id="ticket-list"></div>
+    </aside>
+    <div id="ticket-detail">
+      <p class="hint" id="detail-placeholder">Sélectionne une discussion à gauche.</p>
+      <h2 id="detail-header" class="hidden"></h2>
+      <div id="message-log" class="hidden"></div>
+      <form id="send-form" class="hidden">
+        <input id="message-input" autocomplete="off" placeholder="Réponse..." required>
+        <button type="submit">Envoyer</button>
+      </form>
+    </div>
+  </section>
+
+</main>
+
+<script src="/vendor/sodium.js"></script>
+<script type="module" src="/admin-app.js"></script>
+</body>
+</html>

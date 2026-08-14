@@ -2,6 +2,18 @@
 
 Domaine : `msg.hackhome.online` (confirmé)
 
+> **Mise à jour** : le modèle a évolué d'un salon symétrique (2 pairs
+> échangeant leurs clés) vers un **modèle ticket** : un visiteur anonyme
+> saisit un pseudo, une discussion privée avec l'admin lui est attribuée
+> automatiquement (24h, calculées côté serveur via TTL Redis). L'admin a une
+> identité de chiffrement fixe (clé publique connue à l'avance) et un
+> tableau de bord (`/admin.html`, protégé par mot de passe) listant toutes
+> les discussions actives en temps réel. Le pseudo n'est qu'un label : l'accès
+> réel est garanti par `ticketId` + `accessToken` (jamais le pseudo seul).
+> Le détail des routes (`/api/tickets`, `/api/admin/*`) est dans le code
+> (`backend/src/routes/`), les flux ci-dessous décrivent le modèle salon
+> initial et restent valables pour la partie chiffrement/WebSocket.
+
 ## Principe de base
 
 Le serveur ne voit **jamais** de texte en clair. Il relaie et stocke uniquement

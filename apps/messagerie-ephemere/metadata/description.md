@@ -1,4 +1,4 @@
-# Messagerie éphémère E2EE
+# EphemR — Messagerie éphémère E2EE
 
 Messagerie de bout en bout chiffrée (libsodium/crypto_box). Le serveur ne
 voit jamais de texte en clair : il relaie et stocke uniquement des blobs

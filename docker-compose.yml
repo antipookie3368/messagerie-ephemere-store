@@ -12,6 +12,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - PORT=3000
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?set ADMIN_PASSWORD in your shell or a .env file}
     depends_on:
       - redis
     restart: unless-stopped

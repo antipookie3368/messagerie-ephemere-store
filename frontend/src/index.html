@@ -3,67 +3,47 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Messagerie éphémère</title>
+<title>EphemR</title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
 <header>
-  <h1>Messagerie éphémère</h1>
-  <span id="whoami"></span>
+  <h1>EphemR</h1>
+  <a href="/admin.html" class="admin-link">Admin</a>
 </header>
 
 <main>
 
-  <section id="auth-view" class="view">
-    <form id="register-form">
+  <section id="create-view" class="view">
+    <p class="hint">
+      Choisis un pseudo. Une discussion privée avec un admin te sera
+      attribuée automatiquement, valable 24h dans ce navigateur.
+    </p>
+    <form id="create-form">
       <label for="pseudo-input">Pseudo</label>
-      <input id="pseudo-input" name="pseudo" autocomplete="off" placeholder="3 à 24 caractères" required>
-      <button type="submit">Entrer</button>
-      <p class="error" id="auth-error"></p>
+      <input id="pseudo-input" autocomplete="off" placeholder="3 à 24 caractères" required>
+      <button type="submit" id="create-submit">Entrer</button>
+      <p class="error" id="create-error"></p>
     </form>
   </section>
 
-  <section id="lobby-view" class="view hidden">
-    <form id="create-room-form">
-      <h2>Créer un salon</h2>
-      <label for="default-mode">Mode par défaut</label>
-      <select id="default-mode">
-        <option value="read">Suppression à la lecture</option>
-        <option value="timer">Suppression après délai</option>
-      </select>
-      <select id="default-ttl" class="hidden">
-        <option value="60">1 minute</option>
-        <option value="300" selected>5 minutes</option>
-        <option value="3600">1 heure</option>
-        <option value="86400">24 heures</option>
-      </select>
-      <button type="submit">Créer</button>
-      <p class="error" id="lobby-error"></p>
-    </form>
-
-    <div id="room-link-box" class="hidden">
-      <label for="room-link">Lien à partager</label>
-      <input id="room-link" readonly>
+  <section id="ticket-view" class="view hidden">
+    <div class="ticket-meta">
+      <span id="ticket-pseudo"></span>
+      <span id="ticket-expiry"></span>
     </div>
-  </section>
-
-  <section id="chat-view" class="view hidden">
+    <p class="status-line" id="connection-status"></p>
     <div id="message-log"></div>
     <form id="send-form">
-      <select id="send-mode">
-        <option value="read">À la lecture</option>
-        <option value="timer">Après délai</option>
-      </select>
-      <select id="send-ttl" class="hidden">
-        <option value="60">1 min</option>
-        <option value="300" selected>5 min</option>
-        <option value="3600">1 h</option>
-        <option value="86400">24 h</option>
-      </select>
       <input id="message-input" autocomplete="off" placeholder="Message..." required>
       <button type="submit">Envoyer</button>
     </form>
+  </section>
+
+  <section id="expired-view" class="view hidden">
+    <p class="hint" id="expired-message">Cette discussion a expiré (24h écoulées) et a été supprimée.</p>
+    <button type="button" id="restart-button">Démarrer une nouvelle discussion</button>
   </section>
 
 </main>
