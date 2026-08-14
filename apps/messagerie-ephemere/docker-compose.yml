@@ -1,6 +1,6 @@
 services:
   app:
-    image: messagerie-ephemere-backend:latest
+    image: ghcr.io/antipookie3368/messagerie-ephemere-backend:latest
     environment:
       - REDIS_URL=redis://redis:6379
       - PORT=3000

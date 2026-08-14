@@ -3,7 +3,7 @@
   "id": "messagerie-ephemere",
   "description": "Messagerie a messages ephemeres, chiffree de bout en bout (E2EE) avec libsodium. Le serveur ne stocke et ne relaie que du contenu deja chiffre par le client.",
   "short_desc": "Messagerie ephemere E2EE auto-hebergee",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "tipi_version": 3,
   "min_tipi_version": "4.5.0",
   "port": 3000,
