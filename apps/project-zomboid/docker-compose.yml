@@ -1,0 +1,26 @@
+services:
+  project-zomboid:
+    image: renegademaster/zomboid-dedicated-server:latest
+    container_name: project-zomboid
+    restart: unless-stopped
+    environment:
+      - SERVER_NAME=${SERVER_NAME}
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - SERVER_PASSWORD=${SERVER_PASSWORD}
+      - MOD_WORKSHOP_IDS=${MOD_WORKSHOP_IDS}
+      - MOD_NAMES=${MOD_NAMES}
+      - MIN_RAM=2g
+      - MAX_RAM=${MAX_RAM}
+    ports:
+      - "16261:16261/udp"
+      - "16262:16262/udp"
+    volumes:
+      - ${APP_DATA_DIR}/data:/home/steam/Zomboid
+      - ${APP_DATA_DIR}/server:/home/steam/ZomboidDedicatedServer
+    x-runtipi:
+      is_main: true
+      internal_port: 16261
+
+x-runtipi:
+  schema_version: 2

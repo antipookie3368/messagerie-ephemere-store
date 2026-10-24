@@ -1,0 +1,71 @@
+{
+  "name": "Project Zomboid",
+  "id": "project-zomboid",
+  "description": "Serveur dedie Project Zomboid avec support des mods du Steam Workshop.",
+  "short_desc": "Serveur dedie Project Zomboid",
+  "version": "0.1.0",
+  "tipi_version": 1,
+  "min_tipi_version": "4.5.0",
+  "port": 16261,
+  "author": "self",
+  "source": "",
+  "website": "",
+  "categories": ["gaming"],
+  "available": true,
+  "exposable": false,
+  "no_gui": true,
+  "dynamic_config": true,
+  "supported_architectures": ["amd64"],
+  "form_fields": [
+    {
+      "type": "text",
+      "label": "Nom du serveur",
+      "hint": "Lettres et chiffres uniquement, sans espaces.",
+      "min": 3,
+      "max": 40,
+      "required": true,
+      "env_variable": "SERVER_NAME"
+    },
+    {
+      "type": "password",
+      "label": "Mot de passe admin",
+      "hint": "Compte admin du serveur (identifiant : admin).",
+      "min": 8,
+      "max": 100,
+      "required": true,
+      "env_variable": "ADMIN_PASSWORD"
+    },
+    {
+      "type": "password",
+      "label": "Mot de passe pour rejoindre (optionnel)",
+      "hint": "Laisse vide pour un serveur sans mot de passe.",
+      "max": 100,
+      "required": false,
+      "env_variable": "SERVER_PASSWORD"
+    },
+    {
+      "type": "text",
+      "label": "Workshop IDs des mods",
+      "hint": "Nombres de l'URL Steam de chaque mod, separes par des points-virgules. Ex: 2313387159;2392709985",
+      "max": 2000,
+      "required": false,
+      "env_variable": "MOD_WORKSHOP_IDS"
+    },
+    {
+      "type": "text",
+      "label": "Mod IDs",
+      "hint": "Noms internes des mods (dans leur description), separes par des points-virgules, dans le meme ordre.",
+      "max": 2000,
+      "required": false,
+      "env_variable": "MOD_NAMES"
+    },
+    {
+      "type": "text",
+      "label": "RAM maximale",
+      "hint": "Ex: 4g (garde de la marge pour le reste du serveur).",
+      "max": 10,
+      "required": true,
+      "env_variable": "MAX_RAM"
+    }
+  ]
+}
