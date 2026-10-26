@@ -3,7 +3,7 @@
   "id": "project-zomboid",
   "description": "Serveur dedie Project Zomboid avec support des mods du Steam Workshop.",
   "short_desc": "Serveur dedie Project Zomboid",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "tipi_version": 1,
   "min_tipi_version": "4.5.0",
   "port": 16261,
@@ -58,6 +58,14 @@
       "max": 2000,
       "required": false,
       "env_variable": "MOD_NAMES"
+    },
+    {
+      "type": "text",
+      "label": "Version du jeu",
+      "hint": "public = Build 41 (version normale). unstable = Build 42 (branche test de Steam). Laisse vide pour public.",
+      "max": 30,
+      "required": false,
+      "env_variable": "GAME_VERSION"
     },
     {
       "type": "text",
