@@ -10,7 +10,7 @@ services:
       - SERVER_PASSWORD=${SERVER_PASSWORD}
       - MOD_WORKSHOP_IDS=${MOD_WORKSHOP_IDS}
       - MOD_NAMES=${MOD_NAMES}
-      - GAME_VERSION=${GAME_VERSION:-public}
+      - GAME_VERSION=unstable
       - MIN_RAM=2g
       - MAX_RAM=${MAX_RAM}
     ports:
